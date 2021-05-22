@@ -1,12 +1,13 @@
-from enum import IntEnum
 import random
-from deck import Suit, Deck
-from card import Color
 from dataclasses import dataclass
-from name_generator import generate_random_name
+from enum import IntEnum
 from typing import Dict
+
 import pandas as pd
 
+from card import Color
+from deck import Deck, Suit
+from name_generator import generate_random_name
 
 TEMPERAMENT_MAP = {
     ('K', Suit.Diamonds): 'Plodder, hard worker, dull, unimaginative',
@@ -60,6 +61,15 @@ class SkillLevel(IntEnum):
     great = 2
     exceptional = 4
     extraordinary = 6
+
+SKILL_WEIGHTS = {
+    SkillLevel.poor: 20,
+    SkillLevel.average: 40,
+    SkillLevel.good: 20,
+    SkillLevel.great: 10,
+    SkillLevel.exceptional: 5,
+    SkillLevel.extraordinary: 1
+}
 
 
 
@@ -115,10 +125,10 @@ def select_abilities(overall_ability_level: int, race: str):
 
             if ability_selection_iterations > 1 and current_total == ability_selection_iterations:
                 break
-            elif current_total > overall_ability_level:
+            elif ability_selection_iterations > 1 and current_total > overall_ability_level:
                 ability_level = SkillLevel.poor
             else:
-                ability_level = random.choice(list(SkillLevel))
+                ability_level = random.choices(list(SKILL_WEIGHTS.keys()), list(SKILL_WEIGHTS.values()))[0]
             
             if ability_level == SkillLevel.average:
                 continue
@@ -171,10 +181,11 @@ def calculate_health(abilities: Dict[str, SkillLevel], race: str):
 
     return health
 
-def make_character(ability_level: int):
+def make_character(race: None, ability_level=0):
     deck = Deck.new()
     deck.shuffle()
-    race = get_race(deck)
+    if not race:
+        race = get_race(deck)
     temperament = get_temperament(deck)
     motives = get_motives(deck)
     weapon = get_weapon(deck)
@@ -186,6 +197,6 @@ def make_character(ability_level: int):
 
 
 if __name__ == '__main__':
-    from pprint import pprint
     from dataclasses import asdict
-    pprint(asdict(make_character(3)))
+    from pprint import pprint
+    pprint(asdict(make_character(0)))
