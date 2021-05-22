@@ -1,13 +1,12 @@
+from enum import IntEnum
+import random
 from deck import Suit, Deck
+from card import Color
 from dataclasses import dataclass
+from name_generator import generate_random_name
+from typing import Dict
+import pandas as pd
 
-
-RACE_MAP = {
-    Suit.Spades: 'Dwarf',
-    Suit.Clubs: 'Human',
-    Suit.Diamonds: 'Dragon',
-    Suit.Hearts: 'Faerie'
-}
 
 TEMPERAMENT_MAP = {
     ('K', Suit.Diamonds): 'Plodder, hard worker, dull, unimaginative',
@@ -17,6 +16,7 @@ TEMPERAMENT_MAP = {
     ('Q', Suit.Diamonds): 'An organizer, blunt, goal-oriented, active',
     ('Q', Suit.Clubs): 'Expensive tastes, vain, self-absorbed, a star',
     ('Q', Suit.Spades): 'Two-faced, conniving, treacherous, sneaking',
+    ('Q', Suit.Hearts): 'Mothering, domestic, loving, & supportive',
     ('J', Suit.Diamonds): 'Quick-witted; a good communicator',
     ('J', Suit.Clubs): 'Insecure, vacillating, painfully shy',
     ('J', Suit.Hearts): 'Immature and childlike, throws tantrums',
@@ -31,7 +31,7 @@ INNER_MOTIVES_MAP = {
     Suit.Clubs: 'Aggressive, warlike, violent, short-tempered',
     Suit.Hearts: 'Friendly, helpful, loving and open',
     Suit.Diamonds: 'Mercenary, logical, remote, calculting',
-    Suit.Spades: 'Ruthless, ambitions, treacherous'
+    Suit.Spades: 'Ruthless, ambitious, treacherous'
 }
 
 PRIMARY_WEAPON = {
@@ -46,6 +46,45 @@ PRIMARY_WEAPON = {
     10: 'Rifle (4/5/6)'
 }
 
+NAME_TYPE_MAP = {
+    'Faerie': ['elf_names', 'dark-elf-names', 'nymph-names', 'selkie-names'],
+    'Dwarf': ['dwarf_names'],
+    'Dragon': ['dragon_names'],
+    'Human': ['french_names', 'british-english-names', 'spanish-names', 'italian_names', 'dutch_names']
+}
+
+class SkillLevel(IntEnum):
+    poor = -2
+    average = 0
+    good = 1
+    great = 2
+    exceptional = 4
+    extraordinary = 6
+
+
+
+skills = [
+    'Perception',
+    'Athletics',
+    'Marksmanship',
+    'Fisticuffs',
+    'Fencing',
+    'Physique',
+    'Courage',
+]
+
+HEALTH_TABLE = pd.DataFrame(
+    data=[
+        [3, 4, 5, 6, 7, 8],
+        [4, 5, 6, 7, 8, 8],
+        [5, 6, 7, 8, 8, 8],
+        [6, 7, 8, 8, 8, 9],
+        [7, 8, 8, 8, 9, 9],
+        [8, 8, 8, 8, 8, 10]
+    ],
+    columns=[l.name for l in SkillLevel],
+    index=[l.name for l in SkillLevel]
+)
 
 @dataclass
 class Character:
@@ -53,12 +92,56 @@ class Character:
     temperament: str
     motives: str
     weapon: str
+    name: str
+    abilities: Dict[str, SkillLevel]
+    health: int
+
+def select_abilities(overall_ability_level: int, race: str):
+    current_total = 0
+    abilities = {}
+    all_abilities = list(skills)
+    if race == 'Faerie':
+        all_abilities.extend(['Etherealness', 'Glamour', 'Kindred Powers'])
+    elif race in ('Human', 'Dragon'):
+        all_abilities.append('Sorcery')
+
+    ability_selection_iterations = 0
+    while current_total != overall_ability_level or ability_selection_iterations < 1:
+        ability_selection_iterations += 1
+        random.shuffle(all_abilities)
+        for ability in all_abilities:
+            if ability in abilities and abilities[ability].value > 0:
+                abilities.pop(ability)
+
+            if ability_selection_iterations > 1 and current_total == ability_selection_iterations:
+                break
+            elif current_total > overall_ability_level:
+                ability_level = SkillLevel.poor
+            else:
+                ability_level = random.choice(list(SkillLevel))
+            
+            if ability_level == SkillLevel.average:
+                continue
+
+            abilities[ability] = ability_level
+            current_total = sum(e.value for e in abilities.values())
+
+    print(f'Iterations required to create ability level of {overall_ability_level}: {ability_selection_iterations}')
+    return abilities
 
 
 def get_race(deck: Deck):
-    race_card = deck.deal_face_card()
-    race = RACE_MAP[race_card.suit]
-    return race
+    race_card = deck.deal_card()
+    numeric_value = race_card.numeric_value
+    if numeric_value >= 14:
+        return 'Dragon'
+    elif numeric_value >= 11 and race_card.color == Color.Red:
+        return 'Dwarf'
+    elif numeric_value >= 11 and race_card.color == Color.Black:
+        return 'Faerie'
+    else:
+        return 'Human'
+    
 
 def get_temperament(deck: Deck):
     temperament_card = deck.deal_face_card()
@@ -75,16 +158,34 @@ def get_weapon(deck: Deck):
     weapon = PRIMARY_WEAPON[weapon_card.numeric_value]
     return weapon
 
-def make_character():
+def get_name(race_name: str):
+    name_types = NAME_TYPE_MAP[race_name]
+    return generate_random_name(name_types)
+
+def calculate_health(abilities: Dict[str, SkillLevel], race: str):
+    physique = abilities.get('Physique', SkillLevel.average).name
+    courage = abilities.get('Courage', SkillLevel.average).name
+    health = HEALTH_TABLE.loc[physique, courage]
+    if race == 'Dragon':
+        health += 2
+
+    return health
+
+def make_character(ability_level: int):
     deck = Deck.new()
     deck.shuffle()
     race = get_race(deck)
     temperament = get_temperament(deck)
     motives = get_motives(deck)
     weapon = get_weapon(deck)
+    name = get_name(race)
+    abilities = select_abilities(ability_level, race)
+    health = calculate_health(abilities, race)
 
-    return Character(race, temperament, motives, weapon)
+    return Character(race, temperament, motives, weapon, name, abilities, health)
 
 
 if __name__ == '__main__':
-    print(make_character())
+    from pprint import pprint
+    from dataclasses import asdict
+    pprint(asdict(make_character(3)))
