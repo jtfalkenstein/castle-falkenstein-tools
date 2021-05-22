@@ -105,6 +105,7 @@ class Character:
     name: str
     abilities: Dict[str, SkillLevel]
     health: int
+    name_type: str
 
 def select_abilities(overall_ability_level: int, race: str):
     current_total = 0
@@ -189,11 +190,11 @@ def make_character(race: None, ability_level=0):
     temperament = get_temperament(deck)
     motives = get_motives(deck)
     weapon = get_weapon(deck)
-    name = get_name(race)
+    name_type, name = get_name(race)
     abilities = select_abilities(ability_level, race)
     health = calculate_health(abilities, race)
 
-    return Character(race, temperament, motives, weapon, name, abilities, health)
+    return Character(race, temperament, motives, weapon, name, abilities, health, name_type)
 
 
 if __name__ == '__main__':

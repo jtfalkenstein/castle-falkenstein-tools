@@ -23,7 +23,7 @@ def cache_with_json(func):
         if not items:
             items = func(first_arg, *rest)
             loaded[first_arg] = items
-            
+            write_cache(loaded)
         
         return items
     return wrapper
@@ -73,4 +73,4 @@ def generate_random_name(name_types: List[str]):
     random_names = generate_names(name_type)
     selected_random_name = random.choice(random_names)
     purge_name_from_cache(name_type, selected_random_name)
-    return selected_random_name.strip()
+    return name_type, selected_random_name.strip()
