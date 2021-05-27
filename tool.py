@@ -23,7 +23,8 @@ def cli():
     '-a',
     '--ability-level',
     type=click.INT,
-    default=0
+    default=0,
+    show_default=True
 )
 def generate_character(race, ability_level):
     result = make_character(race, ability_level)
