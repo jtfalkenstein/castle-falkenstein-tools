@@ -63,11 +63,11 @@ class SkillLevel(IntEnum):
     extraordinary = 6
 
 SKILL_WEIGHTS = {
-    SkillLevel.poor: 20,
-    SkillLevel.average: 40,
-    SkillLevel.good: 20,
+    SkillLevel.poor: 30,
+    SkillLevel.average: 70,
+    SkillLevel.good: 30,
     SkillLevel.great: 10,
-    SkillLevel.exceptional: 5,
+    SkillLevel.exceptional: 4,
     SkillLevel.extraordinary: 1
 }
 
